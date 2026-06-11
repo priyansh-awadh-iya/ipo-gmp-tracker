@@ -1,0 +1,6 @@
+# Code Owners configuration file
+# This file defines who owns specific paths in the repository.
+# For more information, see: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Match all files and assign ownership to @priyansh-awadh-iya
+*       @priyansh-awadh-iya
