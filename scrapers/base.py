@@ -1,5 +1,6 @@
 import random
 import re
+import time
 import requests
 import logging
 
@@ -29,7 +30,7 @@ class BaseScraper:
 
     def fetch_html(self):
         """
-        Fetches the HTML source with custom user agents and a 10-second timeout.
+        Fetches the HTML source with custom user agents, retries, and a 10-second timeout.
         Returns the response text or None if failed.
         """
         headers = {
@@ -39,14 +40,23 @@ class BaseScraper:
             'Referer': 'https://www.google.com/',
             'Connection': 'keep-alive'
         }
-        try:
-            logger.info(f"Fetching {self.name} GMP from: {self.url}")
-            response = requests.get(self.url, headers=headers, timeout=10)
-            response.raise_for_status()
-            return response.text
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching data from {self.name} ({self.url}): {e}")
-            return None
+        max_retries = 3
+        backoff_factor = 2
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"Fetching {self.name} GMP (attempt {attempt+1}/{max_retries}) from: {self.url}")
+                # verify=True explicitly checks SSL certificates (mitigating man-in-the-middle attacks)
+                response = requests.get(self.url, headers=headers, timeout=10, verify=True)
+                response.raise_for_status()
+                return response.text
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Attempt {attempt+1} failed for {self.name}: {e}")
+                if attempt < max_retries - 1:
+                    sleep_time = backoff_factor ** attempt + random.uniform(0.5, 1.5)
+                    time.sleep(sleep_time)
+                else:
+                    logger.error(f"All {max_retries} attempts failed for {self.name}.")
+                    return None
 
     def clean_number(self, text):
         """
