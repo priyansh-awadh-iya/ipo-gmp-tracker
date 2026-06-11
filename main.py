@@ -54,8 +54,9 @@ def main():
         gain = ipo['listing_gain_pct']
         gmp = ipo['consensus_gmp']
         price = ipo['cutoff_price']
+        close_date = ipo.get('close_date', 'N/A')
         
-        logger.info(f"IPO: {name} | Consensus GMP: INR {gmp} | Cutoff: INR {price} | Est Gain: {gain}%")
+        logger.info(f"IPO: {name} | Consensus GMP: INR {gmp} | Cutoff: INR {price} | Est Gain: {gain}% | Close: {close_date}")
 
         if gain >= config.THRESHOLD_GAIN_PCT:
             logger.info(f"-> THRESHOLD BREACHED: {gain}% >= {config.THRESHOLD_GAIN_PCT}%!")
@@ -65,7 +66,8 @@ def main():
                 company_name=name,
                 listing_gain_pct=gain,
                 consensus_gmp=gmp,
-                cutoff_price=price
+                cutoff_price=price,
+                close_date=close_date
             )
             if success:
                 alerts_triggered += 1

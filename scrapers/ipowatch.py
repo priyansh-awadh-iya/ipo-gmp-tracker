@@ -50,6 +50,7 @@ class IPOWatchScraper(BaseScraper):
         company_idx = 0
         gmp_idx = 1
         price_idx = 3  # Price Band is typically column 3
+        date_idx = 5   # Date is typically column 5
 
         for idx, h in enumerate(headers):
             if ('ipo name' in h or 'company' in h or 'name' in h or h == 'ipo') and 'gmp' not in h:
@@ -58,8 +59,10 @@ class IPOWatchScraper(BaseScraper):
                 gmp_idx = idx
             elif 'price' in h or 'band' in h or 'cutoff' in h or 'cut-off' in h:
                 price_idx = idx
+            elif ('date' in h or 'close' in h) and 'update' not in h:
+                date_idx = idx
 
-        logger.info(f"IPOWatch scraper mapped headers: Company index={company_idx}, GMP index={gmp_idx}, Price index={price_idx}")
+        logger.info(f"IPOWatch scraper mapped headers: Company index={company_idx}, GMP index={gmp_idx}, Price index={price_idx}, Date index={date_idx}")
 
         ipos = []
         # Skip the header row
@@ -79,6 +82,7 @@ class IPOWatchScraper(BaseScraper):
             company_name = cell_texts[company_idx]
             raw_gmp = cell_texts[gmp_idx]
             raw_price = cell_texts[price_idx]
+            close_date = cell_texts[date_idx] if date_idx < len(cell_texts) else 'N/A'
 
             gmp_val = self.clean_number(raw_gmp)
             price_val = self.clean_price_band(raw_price)
@@ -87,7 +91,8 @@ class IPOWatchScraper(BaseScraper):
                 ipos.append({
                     'company': company_name,
                     'gmp': gmp_val,
-                    'price': price_val
+                    'price': price_val,
+                    'close_date': close_date
                 })
 
         logger.info(f"Successfully scraped {len(ipos)} IPO entries from IPOWatch.")

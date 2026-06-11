@@ -90,6 +90,7 @@ def consolidate_data(chittorgarh_list, ipowatch_list, investorgain_list):
         comp_name = record['company']
         gmp = record['gmp']
         price = record['price']
+        close_date = record.get('close_date', 'N/A')
 
         # Check if company already matched in consolidated
         matched_key = None
@@ -103,6 +104,9 @@ def consolidate_data(chittorgarh_list, ipowatch_list, investorgain_list):
             consolidated[matched_key][f'{source_name}_gmp'] = gmp
             if price > 0:
                 consolidated[matched_key]['prices'].append(price)
+            # Choose a non-N/A close date if current is N/A
+            if close_date and close_date != 'N/A' and (not consolidated[matched_key]['close_date'] or consolidated[matched_key]['close_date'] == 'N/A'):
+                consolidated[matched_key]['close_date'] = close_date
             # Retain the longer/more detailed company name for display
             if len(comp_name) > len(consolidated[matched_key]['company']):
                 consolidated[matched_key]['company'] = comp_name
@@ -114,7 +118,8 @@ def consolidate_data(chittorgarh_list, ipowatch_list, investorgain_list):
                 'chittorgarh_gmp': None,
                 'ipowatch_gmp': None,
                 'investorgain_gmp': None,
-                'prices': [price] if price > 0 else []
+                'prices': [price] if price > 0 else [],
+                'close_date': close_date
             }
             consolidated[normalized_key][f'{source_name}_gmp'] = gmp
 
@@ -157,7 +162,8 @@ def consolidate_data(chittorgarh_list, ipowatch_list, investorgain_list):
             'investorgain_gmp': data['investorgain_gmp'],
             'consensus_gmp': round(consensus_gmp, 2),
             'cutoff_price': round(cutoff_price, 2),
-            'listing_gain_pct': round(listing_gain_pct, 2)
+            'listing_gain_pct': round(listing_gain_pct, 2),
+            'close_date': data.get('close_date', 'N/A')
         })
 
     return results

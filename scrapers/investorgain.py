@@ -48,6 +48,7 @@ class InvestorGainScraper(BaseScraper):
         company_idx = 0
         gmp_idx = 1
         price_idx = 2
+        close_idx = 7 # Close date is typically column 7
 
         for idx, h in enumerate(headers):
             if ('ipo' in h or 'company' in h or 'name' in h) and 'gmp' not in h:
@@ -56,8 +57,10 @@ class InvestorGainScraper(BaseScraper):
                 gmp_idx = idx
             elif 'price' in h or 'band' in h or 'cutoff' in h or 'cut-off' in h:
                 price_idx = idx
+            elif 'close' in h or 'date' in h:
+                close_idx = idx
 
-        logger.info(f"InvestorGain scraper mapped headers: Company index={company_idx}, GMP index={gmp_idx}, Price index={price_idx}")
+        logger.info(f"InvestorGain scraper mapped headers: Company index={company_idx}, GMP index={gmp_idx}, Price index={price_idx}, Close index={close_idx}")
 
         ipos = []
         tbody = table.find('tbody')
@@ -78,6 +81,7 @@ class InvestorGainScraper(BaseScraper):
             company_name = cell_texts[company_idx]
             raw_gmp = cell_texts[gmp_idx]
             raw_price = cell_texts[price_idx]
+            close_date = cell_texts[close_idx] if close_idx < len(cell_texts) else 'N/A'
 
             gmp_val = self.clean_number(raw_gmp)
             price_val = self.clean_price_band(raw_price)
@@ -86,7 +90,8 @@ class InvestorGainScraper(BaseScraper):
                 ipos.append({
                     'company': company_name,
                     'gmp': gmp_val,
-                    'price': price_val
+                    'price': price_val,
+                    'close_date': close_date
                 })
 
         logger.info(f"Successfully scraped {len(ipos)} IPO entries from InvestorGain.")

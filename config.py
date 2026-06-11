@@ -1,7 +1,7 @@
 import os
 
 # Threshold expected listing gain percentage to trigger notifications
-THRESHOLD_GAIN_PCT = 25.0
+THRESHOLD_GAIN_PCT = 15.0
 
 # Delivery method: 'whatsapp' or 'sms'
 DELIVERY_METHOD = os.environ.get('DELIVERY_METHOD', 'whatsapp').lower()

@@ -4,7 +4,7 @@ import config
 
 logger = logging.getLogger(__name__)
 
-def send_alert(company_name, listing_gain_pct, consensus_gmp, cutoff_price):
+def send_alert(company_name, listing_gain_pct, consensus_gmp, cutoff_price, close_date):
     """
     Compiles and sends a WhatsApp or SMS alert using the Twilio client.
     """
@@ -21,6 +21,7 @@ def send_alert(company_name, listing_gain_pct, consensus_gmp, cutoff_price):
         f"Expected Premium: {listing_gain_pct}%\n"
         f"Consensus Avg GMP: INR {consensus_gmp}\n"
         f"Cut-off Price: INR {cutoff_price}\n"
+        f"Last Date to Apply: {close_date}\n"
         f"Action: Threshold criteria breached. Ready for subscription review."
     )
 
