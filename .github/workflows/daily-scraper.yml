@@ -1,3 +1,7 @@
+# WARNING: Do NOT add a 'pull_request' trigger to this workflow.
+# Doing so could expose repository secrets to pull requests submitted from forks.
+# Only run this workflow on 'schedule' or 'workflow_dispatch'.
+
 name: Daily IPO GMP Scraper & Alerter
 
 on:
