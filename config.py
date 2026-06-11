@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+# Load local .env file if present
+load_dotenv()
 
 # Threshold expected listing gain percentage to trigger notifications
 THRESHOLD_GAIN_PCT = 15.0
