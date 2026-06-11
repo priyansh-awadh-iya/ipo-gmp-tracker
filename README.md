@@ -72,8 +72,8 @@ Create or export the required Twilio credentials on your machine:
 ```powershell
 $env:TWILIO_ACCOUNT_SID="your_account_sid"
 $env:TWILIO_AUTH_TOKEN="your_auth_token"
-$env:MY_PHONE_NUMBER="+919876543210"        # Your verified recipient number
-$env:TWILIO_FROM_NUMBER="+14155238886"       # Your Twilio sandbox number
+$env:MY_PHONE_NUMBER="+11234567890"        # Your verified recipient number
+$env:TWILIO_FROM_NUMBER="+15555555555"       # Your Twilio sandbox number
 $env:DELIVERY_METHOD="whatsapp"              # Toggle to 'sms' or 'whatsapp'
 ```
 
@@ -81,8 +81,8 @@ $env:DELIVERY_METHOD="whatsapp"              # Toggle to 'sms' or 'whatsapp'
 ```bash
 export TWILIO_ACCOUNT_SID="your_account_sid"
 export TWILIO_AUTH_TOKEN="your_auth_token"
-export MY_PHONE_NUMBER="+919876543210"
-export TWILIO_FROM_NUMBER="+14155238886"
+export MY_PHONE_NUMBER="+11234567890"
+export TWILIO_FROM_NUMBER="+15555555555"
 export DELIVERY_METHOD="whatsapp"
 ```
 
@@ -100,7 +100,7 @@ To use Twilio's free tier for alerts:
 
 ### For WhatsApp Alerts:
 1. Go to the **Twilio Console** > **Messaging** > **Try it out** > **Send a WhatsApp message**.
-2. Scan the QR code or send the text code (e.g., `join <sandbox-keyword>`) to the Twilio sandbox number (typically `+1 415 523 8886`) from your personal phone.
+2. Scan the QR code or send the text code (e.g., `join <sandbox-keyword>`) to the Twilio sandbox number (typically `+15555555555`) from your personal phone.
 3. Add your personal number under **Verified Caller IDs** in the console.
 
 ### For SMS Alerts:

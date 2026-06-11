@@ -4,6 +4,21 @@ import config
 
 logger = logging.getLogger(__name__)
 
+def mask_phone_number(number_str):
+    """
+    Masks all but the last 4 digits of a phone number string (preserving the 'whatsapp:' prefix).
+    """
+    if not number_str:
+        return "N/A"
+    prefix = ""
+    num = number_str
+    if number_str.startswith("whatsapp:"):
+        prefix = "whatsapp:"
+        num = number_str[9:]
+    if len(num) > 4:
+        return f"{prefix}{'*' * (len(num) - 4)}{num[-4:]}"
+    return number_str
+
 def send_alert(company_name, listing_gain_pct, consensus_gmp, cutoff_price, close_date):
     """
     Compiles and sends a WhatsApp or SMS alert using the Twilio client.
@@ -38,8 +53,10 @@ def send_alert(company_name, listing_gain_pct, consensus_gmp, cutoff_price, clos
             from_number = config.TWILIO_FROM_NUMBER.replace('whatsapp:', '')
             to_number = config.MY_PHONE_NUMBER.replace('whatsapp:', '')
 
+        masked_from = mask_phone_number(from_number)
+        masked_to = mask_phone_number(to_number)
         logger.info(f"Dispatching alert via {config.DELIVERY_METHOD.upper()}...")
-        logger.info(f"Sender: {from_number} -> Recipient: {to_number}")
+        logger.info(f"Sender: {masked_from} -> Recipient: {masked_to}")
 
         message = client.messages.create(
             body=message_body,

@@ -3,6 +3,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def sanitize_company_name(name):
+    """
+    Whitelist-based sanitization for company names to permit only safe characters:
+    alphanumeric, spaces, dots, hyphens, and ampersands.
+    """
+    if not name:
+        return ""
+    # Remove any character not in our safe whitelist
+    cleaned = re.sub(r'[^a-zA-Z0-9\s\.\-&]', '', name)
+    return " ".join(cleaned.split()).strip()
+
 def normalize_name(name):
     """
     Normalizes company names for fuzzy/token match:
@@ -11,9 +22,10 @@ def normalize_name(name):
     - Removes common business suffixes (Ltd, Limited, Pvt, Co, Company, IPO, REIT)
     - Strips non-alphanumeric chars and normalizes spacing
     """
-    if not name:
+    sanitized = sanitize_company_name(name)
+    if not sanitized:
         return ""
-    name = name.lower()
+    name = sanitized.lower()
     
     # Remove text in parentheses
     name = re.sub(r'\(.*?\)', '', name)
@@ -87,10 +99,21 @@ def consolidate_data(chittorgarh_list, ipowatch_list, investorgain_list):
     consolidated = {}
 
     def add_to_consolidated(record, source_name):
-        comp_name = record['company']
+        comp_name = sanitize_company_name(record['company'])
+        if not comp_name:
+            return
+
         gmp = record['gmp']
         price = record['price']
         close_date = record.get('close_date', 'N/A')
+
+        # Sanity validation on scraped floats (avoid DivisionByZero and mathematical overflows)
+        if not (0.0 <= gmp <= 100000.0):
+            logger.warning(f"Sanity check failed: rejecting abnormal GMP '{gmp}' for {comp_name} from {source_name}")
+            gmp = 0.0
+        if not (0.0 <= price <= 100000.0):
+            logger.warning(f"Sanity check failed: rejecting abnormal Price '{price}' for {comp_name} from {source_name}")
+            price = 0.0
 
         # Check if company already matched in consolidated
         matched_key = None
@@ -152,6 +175,9 @@ def consolidate_data(chittorgarh_list, ipowatch_list, investorgain_list):
         # Calculate Listing Gain Percentage
         if cutoff_price > 0:
             listing_gain_pct = (consensus_gmp / cutoff_price) * 100
+            if listing_gain_pct > 500.0:
+                logger.warning(f"Anomalous listing gain calculated for {data['company']}: {listing_gain_pct}%. Capping to 500.0%")
+                listing_gain_pct = 500.0
         else:
             listing_gain_pct = 0.0
 
