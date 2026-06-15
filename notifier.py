@@ -1,4 +1,5 @@
 import logging
+import requests
 from twilio.rest import Client
 import config
 
@@ -19,9 +20,41 @@ def mask_phone_number(number_str):
         return f"{prefix}{'*' * (len(num) - 4)}{num[-4:]}"
     return number_str
 
+def mask_chat_id(chat_id_str):
+    """
+    Masks all but the last 4 digits of a Telegram Chat ID.
+    """
+    if not chat_id_str:
+        return "N/A"
+    if len(chat_id_str) > 4:
+        return f"{'*' * (len(chat_id_str) - 4)}{chat_id_str[-4:]}"
+    return chat_id_str
+
+def send_telegram_message(token, chat_id, text):
+    """
+    Dispatches a message using the Telegram Bot API.
+    """
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        'chat_id': chat_id,
+        'text': text,
+        'parse_mode': 'Markdown'
+    }
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        response.raise_for_status()
+        res_data = response.json()
+        if res_data.get('ok'):
+            return True
+        logger.error(f"Telegram Bot API error response: {res_data}")
+        return False
+    except Exception as e:
+        logger.error(f"Telegram API request failed: {e}")
+        return False
+
 def send_alert(company_name, listing_gain_pct, consensus_gmp, cutoff_price, close_date):
     """
-    Compiles and sends a WhatsApp or SMS alert using the Twilio client.
+    Compiles and sends a WhatsApp, SMS, or Telegram alert.
     """
     missing_vars = config.validate_config()
     if missing_vars:
@@ -39,6 +72,35 @@ def send_alert(company_name, listing_gain_pct, consensus_gmp, cutoff_price, clos
         f"Last Date to Apply: {close_date}\n"
         f"Action: Threshold criteria breached. Ready for subscription review."
     )
+
+    if config.DELIVERY_METHOD == 'telegram':
+        try:
+            # Split recipients by comma and clean them
+            chat_ids = [cid.strip() for cid in config.TELEGRAM_CHAT_ID.split(',') if cid.strip()]
+            if not chat_ids:
+                logger.error("No recipient chat IDs found in config.TELEGRAM_CHAT_ID.")
+                return False
+
+            success_count = 0
+            failure_count = 0
+
+            for cid in chat_ids:
+                masked_to = mask_chat_id(cid)
+                logger.info(f"Dispatching alert via TELEGRAM...")
+                logger.info(f"Recipient Chat ID: {masked_to}")
+
+                success = send_telegram_message(config.TELEGRAM_BOT_TOKEN, cid, message_body)
+                if success:
+                    logger.info(f"Alert sent successfully to Telegram Chat ID: {masked_to}!")
+                    success_count += 1
+                else:
+                    logger.error(f"Failed to send Telegram message to Chat ID: {masked_to}")
+                    failure_count += 1
+
+            return success_count > 0 and failure_count == 0
+        except Exception as e:
+            logger.error(f"Failed to process Telegram sending loop: {e}")
+            return False
 
     try:
         # Initialize Twilio Client
