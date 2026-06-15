@@ -8,7 +8,7 @@ load_dotenv()
 THRESHOLD_GAIN_PCT = 15.0
 
 # Delivery method: 'whatsapp', 'sms', or 'telegram'
-DELIVERY_METHOD = os.environ.get('DELIVERY_METHOD', 'whatsapp').lower()
+DELIVERY_METHOD = (os.environ.get('DELIVERY_METHOD') or 'whatsapp').lower()
 
 # Twilio API credentials and phone configurations
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
