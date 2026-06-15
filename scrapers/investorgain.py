@@ -1,4 +1,6 @@
+import json
 from bs4 import BeautifulSoup
+from datetime import datetime
 from scrapers.base import BaseScraper
 import logging
 
@@ -13,77 +15,55 @@ class InvestorGainScraper(BaseScraper):
 
     def scrape(self):
         """
-        Scrapes the InvestorGain IPO GMP dashboard.
-        Returns a list of dicts: [{'company': str, 'gmp': float, 'price': float}]
+        Scrapes the InvestorGain IPO GMP dashboard by querying the backend JSON API.
+        Returns a list of dicts: [{'company': str, 'gmp': float, 'price': float, 'close_date': str}]
         """
+        now = datetime.utcnow()
+        # Query the new backend API endpoint dynamically with the current month and year
+        api_url = f"https://webnodejs.investorgain.com/cloud/v2/report/data-read/331/1/{now.month}/{now.year}/0/0/all"
+        self.url = api_url
+
         html = self.fetch_html()
         if not html:
-            logger.warning("No HTML returned for InvestorGain GMP scraper.")
+            logger.warning("No data returned for InvestorGain GMP scraper API.")
             return []
 
-        soup = BeautifulSoup(html, 'html.parser')
-        table = soup.find(id="reportTable")
-        if not table:
-            logger.warning("Could not find table 'reportTable' on InvestorGain GMP page.")
+        try:
+            data = json.loads(html)
+        except Exception as e:
+            logger.error(f"Failed to parse JSON response from InvestorGain API: {e}")
             return []
 
-        rows = table.find_all('tr')
-        if not rows:
-            logger.warning("InvestorGain table has no rows.")
+        report_data = data.get('reportTableData', [])
+        if not report_data:
+            logger.warning("InvestorGain API returned empty reportTableData.")
             return []
-
-        # Find headers dynamically
-        headers = []
-        thead = table.find('thead')
-        if thead:
-            headers = [th.text.strip().lower() for th in thead.find_all(['th', 'td'])]
-        
-        # If no thead headers found, use first row
-        if not headers:
-            first_row = table.find('tr')
-            if first_row:
-                headers = [td.text.strip().lower() for td in first_row.find_all(['td', 'th'])]
-
-        # Map column indexes dynamically based on headers
-        company_idx = 0
-        gmp_idx = 1
-        price_idx = 2
-        close_idx = 7 # Close date is typically column 7
-
-        for idx, h in enumerate(headers):
-            if ('ipo' in h or 'company' in h or 'name' in h) and 'gmp' not in h:
-                company_idx = idx
-            elif 'gmp' in h or 'premium' in h:
-                gmp_idx = idx
-            elif 'price' in h or 'band' in h or 'cutoff' in h or 'cut-off' in h:
-                price_idx = idx
-            elif 'close' in h or 'date' in h:
-                close_idx = idx
-
-        logger.info(f"InvestorGain scraper mapped headers: Company index={company_idx}, GMP index={gmp_idx}, Price index={price_idx}, Close index={close_idx}")
 
         ipos = []
-        tbody = table.find('tbody')
-        data_rows = tbody.find_all('tr') if tbody else rows[1:]
-
-        for row in data_rows:
-            cells = row.find_all('td')
-            if not cells or len(cells) <= max(company_idx, gmp_idx, price_idx):
+        for item in report_data:
+            raw_name = item.get('Name', '')
+            if not raw_name:
                 continue
 
-            cell_texts = [c.text.strip() for c in cells]
-            
-            # Check for placeholders
-            if any("no data available" in text.lower() for text in cell_texts):
-                logger.info("InvestorGain GMP table contains 'No data available'.")
-                continue
+            # Extract company name from the link inside the Name HTML snippet
+            soup = BeautifulSoup(raw_name, 'html.parser')
+            a_tag = soup.find('a')
+            company_name = a_tag.text.strip() if a_tag else soup.text.strip()
 
-            company_name = cell_texts[company_idx]
-            raw_gmp = cell_texts[gmp_idx]
-            raw_price = cell_texts[price_idx]
-            close_date = cell_texts[close_idx] if close_idx < len(cell_texts) else 'N/A'
+            raw_gmp = item.get('GMP', '')
+            raw_price = item.get('Price (₹)', '')
+            raw_close = item.get('Close', '')
 
-            gmp_val = self.clean_number(raw_gmp)
+            # Parse Close Date (using first text child before any HTML breaks)
+            close_soup = BeautifulSoup(raw_close, 'html.parser')
+            close_date = next(close_soup.stripped_strings, 'N/A')
+
+            # Parse GMP value
+            gmp_soup = BeautifulSoup(raw_gmp, 'html.parser')
+            gmp_text = next(gmp_soup.stripped_strings, '')
+            gmp_val = self.clean_number(gmp_text)
+
+            # Parse Price value
             price_val = self.clean_price_band(raw_price)
 
             if company_name:
@@ -94,5 +74,5 @@ class InvestorGainScraper(BaseScraper):
                     'close_date': close_date
                 })
 
-        logger.info(f"Successfully scraped {len(ipos)} IPO entries from InvestorGain.")
+        logger.info(f"Successfully scraped {len(ipos)} IPO entries from InvestorGain API.")
         return ipos

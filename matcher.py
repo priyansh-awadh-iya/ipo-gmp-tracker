@@ -189,7 +189,10 @@ def consolidate_data(chittorgarh_list, ipowatch_list, investorgain_list):
             'consensus_gmp': round(consensus_gmp, 2),
             'cutoff_price': round(cutoff_price, 2),
             'listing_gain_pct': round(listing_gain_pct, 2),
-            'close_date': data.get('close_date', 'N/A')
+            'close_date': data.get('close_date', 'N/A'),
+            'is_complete': (data['chittorgarh_gmp'] is not None and
+                            data['ipowatch_gmp'] is not None and
+                            data['investorgain_gmp'] is not None)
         })
 
     return results

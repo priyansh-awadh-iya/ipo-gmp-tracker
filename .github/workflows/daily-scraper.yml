@@ -36,7 +36,9 @@ jobs:
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           MY_PHONE_NUMBER: ${{ secrets.MY_PHONE_NUMBER }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          DELIVERY_METHOD: 'whatsapp' # Toggle to 'sms' if preferred
+          DELIVERY_METHOD: ${{ secrets.DELIVERY_METHOD }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python main.py
 

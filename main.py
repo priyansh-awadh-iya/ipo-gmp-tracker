@@ -52,10 +52,14 @@ def generate_report(scraper_statuses, ipo_results, overall_status, error_message
             gmp = ipo['consensus_gmp']
             price = ipo['cutoff_price']
             gain = ipo['listing_gain_pct']
+            is_complete = ipo.get('is_complete', False)
             
-            # Status icon based on threshold
+            # Status icon based on threshold and source completeness
             if gain >= config.THRESHOLD_GAIN_PCT:
-                status_str = "✅ Met Threshold"
+                if is_complete:
+                    status_str = "✅ Met Threshold"
+                else:
+                    status_str = "⚠️ Met Threshold (Incomplete Source Data)"
             else:
                 status_str = "❌ Below Threshold"
                 
@@ -185,31 +189,36 @@ def main():
         gmp = ipo['consensus_gmp']
         price = ipo['cutoff_price']
         close_date = ipo.get('close_date', 'N/A')
+        is_complete = ipo.get('is_complete', False)
         
-        logger.info(f"IPO: {name} | Consensus GMP: INR {gmp} | Cutoff: INR {price} | Est Gain: {gain}% | Close: {close_date}")
+        logger.info(f"IPO: {name} | Consensus GMP: INR {gmp} | Cutoff: INR {price} | Est Gain: {gain}% | Close: {close_date} | Complete: {is_complete}")
 
         alert_action = "Skipped"
         if gain >= config.THRESHOLD_GAIN_PCT:
-            logger.info(f"-> THRESHOLD BREACHED: {gain}% >= {config.THRESHOLD_GAIN_PCT}%!")
-            
-            # Enforce Twilio send limit
-            if alerts_triggered >= max_alerts_per_run:
-                logger.warning(f"Wallet safeguard: Max alerts limit ({max_alerts_per_run}) reached. Skipping notification for {name}.")
-                alert_action = "Skipped (Wallet Safeguard)"
+            if not is_complete:
+                logger.info(f"-> Threshold met ({gain}%) but skipped: IPO data not found in all 3 websites.")
+                alert_action = "Skipped (Incomplete Data)"
             else:
-                # Send alert
-                success = notifier.send_alert(
-                    company_name=name,
-                    listing_gain_pct=gain,
-                    consensus_gmp=gmp,
-                    cutoff_price=price,
-                    close_date=close_date
-                )
-                if success:
-                    alerts_triggered += 1
-                    alert_action = "Sent Successfully"
+                logger.info(f"-> THRESHOLD BREACHED: {gain}% >= {config.THRESHOLD_GAIN_PCT}%!")
+                
+                # Enforce Twilio send limit
+                if alerts_triggered >= max_alerts_per_run:
+                    logger.warning(f"Wallet safeguard: Max alerts limit ({max_alerts_per_run}) reached. Skipping notification for {name}.")
+                    alert_action = "Skipped (Wallet Safeguard)"
                 else:
-                    alert_action = "Failed to Send"
+                    # Send alert
+                    success = notifier.send_alert(
+                        company_name=name,
+                        listing_gain_pct=gain,
+                        consensus_gmp=gmp,
+                        cutoff_price=price,
+                        close_date=close_date
+                    )
+                    if success:
+                        alerts_triggered += 1
+                        alert_action = "Sent Successfully"
+                    else:
+                        alert_action = "Failed to Send"
         else:
             logger.info(f"-> Threshold not met: {gain}% < {config.THRESHOLD_GAIN_PCT}%")
             alert_action = "Skipped (Below Threshold)"
@@ -219,7 +228,8 @@ def main():
             'consensus_gmp': gmp,
             'cutoff_price': price,
             'listing_gain_pct': gain,
-            'alert_action': alert_action
+            'alert_action': alert_action,
+            'is_complete': is_complete
         })
 
     # Generate the successful run report
