@@ -16,5 +16,6 @@ __pycache__/
 *.log
 *.html
 *.json
+report.md
 !requirements.txt
 !.github/workflows/*.yml

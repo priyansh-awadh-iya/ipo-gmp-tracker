@@ -39,3 +39,10 @@ jobs:
           DELIVERY_METHOD: 'whatsapp' # Toggle to 'sms' if preferred
         run: |
           python main.py
+
+      - name: Upload Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmp-scraper-report
+          path: report.md
