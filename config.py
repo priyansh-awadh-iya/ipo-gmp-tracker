@@ -13,6 +13,7 @@ DELIVERY_METHOD = os.environ.get('DELIVERY_METHOD', 'whatsapp').lower()
 # Twilio API credentials and phone configurations
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
+# Can contain a single number or multiple comma-separated numbers (e.g., +919999999999,+918888888888)
 MY_PHONE_NUMBER = os.environ.get('MY_PHONE_NUMBER')
 TWILIO_FROM_NUMBER = os.environ.get('TWILIO_FROM_NUMBER')
 

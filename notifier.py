@@ -44,28 +44,43 @@ def send_alert(company_name, listing_gain_pct, consensus_gmp, cutoff_price, clos
         # Initialize Twilio Client
         client = Client(config.TWILIO_ACCOUNT_SID, config.TWILIO_AUTH_TOKEN)
         
-        # Configure numbers based on delivery method
-        if config.DELIVERY_METHOD == 'whatsapp':
-            from_number = f"whatsapp:{config.TWILIO_FROM_NUMBER}"
-            to_number = f"whatsapp:{config.MY_PHONE_NUMBER}"
-        else:
-            # Clean up number prefix in case user included 'whatsapp:' manually
-            from_number = config.TWILIO_FROM_NUMBER.replace('whatsapp:', '')
-            to_number = config.MY_PHONE_NUMBER.replace('whatsapp:', '')
+        # Split recipients by comma and clean them
+        recipients = [num.strip() for num in config.MY_PHONE_NUMBER.split(',') if num.strip()]
+        if not recipients:
+            logger.error("No recipient phone numbers found in config.MY_PHONE_NUMBER.")
+            return False
 
-        masked_from = mask_phone_number(from_number)
-        masked_to = mask_phone_number(to_number)
-        logger.info(f"Dispatching alert via {config.DELIVERY_METHOD.upper()}...")
-        logger.info(f"Sender: {masked_from} -> Recipient: {masked_to}")
+        success_count = 0
+        failure_count = 0
 
-        message = client.messages.create(
-            body=message_body,
-            from_=from_number,
-            to=to_number
-        )
-        
-        logger.info(f"Alert sent successfully! Message SID: {message.sid}")
-        return True
+        for rec in recipients:
+            # Configure numbers based on delivery method
+            if config.DELIVERY_METHOD == 'whatsapp':
+                from_number = f"whatsapp:{config.TWILIO_FROM_NUMBER}"
+                to_number = f"whatsapp:{rec}" if not rec.startswith("whatsapp:") else rec
+            else:
+                # Clean up number prefix in case user included 'whatsapp:' manually
+                from_number = config.TWILIO_FROM_NUMBER.replace('whatsapp:', '')
+                to_number = rec.replace('whatsapp:', '')
+
+            masked_from = mask_phone_number(from_number)
+            masked_to = mask_phone_number(to_number)
+            logger.info(f"Dispatching alert via {config.DELIVERY_METHOD.upper()}...")
+            logger.info(f"Sender: {masked_from} -> Recipient: {masked_to}")
+
+            try:
+                message = client.messages.create(
+                    body=message_body,
+                    from_=from_number,
+                    to=to_number
+                )
+                logger.info(f"Alert sent successfully to {masked_to}! Message SID: {message.sid}")
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Failed to send Twilio message to {masked_to}: {e}")
+                failure_count += 1
+
+        return success_count > 0 and failure_count == 0
     except Exception as e:
-        logger.error(f"Failed to send Twilio message: {e}")
+        logger.error(f"Failed to process Twilio sending loop: {e}")
         return False
